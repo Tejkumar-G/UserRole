@@ -1,23 +1,26 @@
 """
 Django admin customization.
 """
+from django import forms
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
+from django.contrib.auth.models import (
+    Permission,
+    Group
+)
 from django.utils.translation import gettext_lazy as _
 
-from django.contrib.auth import get_user_model
-from core.signals import assign_permissions
-from django.db.models.signals import post_save
-
 from core import models
+
 
 
 class UserAdmin(BaseUserAdmin):
     """Define the admin page for users."""
 
+
     ordering = ['id']
     list_display = ['email', 'phone']
-    list_filter = ['is_superuser', 'roles', 'permissions']
+    list_filter = ['is_superuser']
     readonly_fields = ['id', 'last_login']
 
     fieldsets = (
@@ -30,12 +33,14 @@ class UserAdmin(BaseUserAdmin):
                 'password',
                 'phone',
                 'is_active',
+                'is_staff',
+                'is_superuser',
+                'strategy_access',
             ),
         }),
-        (_('Roles & Permissions'), {
+        (_('Groups'), {
             'fields': (
-                'roles',
-                'permissions',
+                'groups',
             ),
         }),
         (_('Dates'), {'fields': ('last_login',)}),
@@ -50,8 +55,8 @@ class UserAdmin(BaseUserAdmin):
                 'password2',
                 'first_name',
                 'last_name',
-                'roles',
-                'permissions',
+                'groups',
+                'strategy_access',
             ),
         }),
     )
@@ -76,28 +81,31 @@ class UserAdmin(BaseUserAdmin):
         # Get the user instance from the form
         user = form.instance
 
-        # Check if the user has any roles ending with 'Admin' or has 'Admin Permission'
-        has_admin_roles = user.roles.filter(name__endswith='Admin').exists()
-        has_admin_permission = user.permissions.filter(name='Admin Permission').exists()
+        # Get the default group and its associated permissions
+        default_group = Group.objects.get(name='Default Group')
+        default_group_permissions = default_group.permissions.all()
 
+        # Get all permissions except for the default group permissions
+        excluded_permissions = Permission.objects.exclude(id__in=default_group_permissions)
 
+        try:
+            # Check if the user has other permissions besides the default group
+            has_other_permissions = user.groups.permissions.filter(id__in=excluded_permissions).exists()
 
-        # Determine the values for is_staff and is_superuser
-        is_staff = has_admin_roles or has_admin_permission or user.permissions.exists()
-        is_superuser = has_admin_roles or has_admin_permission
+            # Update the user instance if the values have changed
+            if has_other_permissions:
+                user.is_staff = True
+                user.is_superuser = excluded_permissions.count() == user.groups.permissions.count()
+                user.save(update_fields=['is_staff', 'is_superuser'])
+        except Exception as e:
+            print(e)
 
-        # Update the user instance if the values have changed
-        if user.is_staff != is_staff or user.is_superuser != is_superuser:
-            user.is_staff = is_staff
-            user.is_superuser = is_superuser
-            user.save(update_fields=['is_staff', 'is_superuser'])
-
-        assign_permissions(sender=get_user_model, instance=user, created=False)
+        # Assign permissions based on the user's role and selected permissions
+        # assign_permissions(sender=get_user_model, instance=user, created=False)
 
 
 
 admin.site.register(models.User, UserAdmin)
 
-admin.site.register(models.Role)
 
-admin.site.register(models.Permission)
+admin.site.register(Permission)

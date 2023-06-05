@@ -9,24 +9,23 @@ from rest_framework import (
     viewsets,
     permissions,
     status,
-    exceptions,
 )
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 from .serializers import (
     UserSerializer,
-    CustomTokenObtainPairSerializer,
 )
 
 
 class CreateUserView(APIView):
     """This view for creating user."""
     serializer_class = UserSerializer
-
-    def post(self, request):
+    @staticmethod
+    def post( request):
         serializer = UserSerializer(data=request.data)
         print(serializer)
         if serializer.is_valid():
@@ -38,7 +37,7 @@ class CreateUserView(APIView):
                 'refresh': str(refresh),
                 'access': str(refresh.access_token),
                 'user_id': user.id
-            })
+            }, status=status.HTTP_201_CREATED)
         else:
             return Response(
                 serializer.errors,
@@ -47,9 +46,19 @@ class CreateUserView(APIView):
 
 class LoginUserView(TokenObtainPairView):
     """This view is for user login."""
-    serializer_class = CustomTokenObtainPairSerializer
+    serializer_class = TokenObtainPairSerializer
 
+class LogoutUserView(APIView):
+    """This view is for user logout."""
+    permission_classes = [permissions.IsAuthenticated]
 
+    @staticmethod
+    def post(request):
+        refresh = RefreshToken.for_user(request.user)
+        # Perform logout
+        refresh.blacklist()
+
+        return Response({"detail": "User logged out successfully."})
 
 class UserMangerView(
             mixins.RetrieveModelMixin,
@@ -63,9 +72,9 @@ class UserMangerView(
     queryset = get_user_model().objects.all()
 
     def get_object(self):
-        obj = super().get_object()
-        if obj.id != self.request.user.id:
-            # Handle unauthorized access
-            # For example, you can raise a permission denied exception
-            raise exceptions.PermissionDenied("You are not allowed to access this user.")
-        return obj
+        # obj = super().get_object()
+        # if obj.id != self.request.user.id:
+        #     # Handle unauthorized access
+        #     # For example, you can raise a permission denied exception
+        #     raise exceptions.PermissionDenied("You are not allowed to access this user.")
+        return self.request.user

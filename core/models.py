@@ -1,29 +1,15 @@
 """
 Models for the user role application.
 """
-from django.db import (
-    models,
-    transaction,
-)
-
 from django.contrib.auth.models import (
     AbstractBaseUser,
     BaseUserManager,
     PermissionsMixin,
+    Group,
 )
-
-
-class Role(models.Model):
-    name = models.CharField(max_length=100)
-
-    def __str__(self):
-        return self.name
-
-class Permission(models.Model):
-    name = models.CharField(max_length=100)
-
-    def __str__(self):
-        return self.name
+from django.db import (
+    models,
+)
 
 
 class UserManger(BaseUserManager):
@@ -49,12 +35,12 @@ class UserManger(BaseUserManager):
         return user
 
 
-def get_default_role():
+def get_default_group():
     try:
-        role = Role.objects.get(pk=1)
-        return role
-    except Role.DoesNotExist:
-        return Role.objects.create(id=1, name='default')
+        group = Group.objects.get(name='Default Group')
+        return group
+    except Group.DoesNotExist:
+        return Group.objects.create(name='Default Group')
 
 
 class User(AbstractBaseUser, PermissionsMixin):
@@ -68,23 +54,25 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
 
+    strategy_access = models.TextField(default="['view']", blank=True)
+
     objects = UserManger()
 
     USERNAME_FIELD = 'email'
 
-    roles = models.ManyToManyField(Role, related_name='users', blank=True)
-    permissions = models.ManyToManyField(Permission, related_name='users', blank=True)
+    # Add a ManyToManyField for groups
+    groups = models.ManyToManyField(Group, related_name='users', blank=True)
 
-    @transaction.atomic
     def save(self, *args, **kwargs):
-        is_new_user = not self.id
-
-        if is_new_user:
-            # If it's a new user, save it first to generate an ID
-            super().save(*args, **kwargs)
-            self.roles.add(get_default_role())
-
+        # Call the super method to save the user
         super().save(*args, **kwargs)
+
+        # Assign a default group if no groups are assigned
+        if not self.groups.exists():
+            default_group = get_default_group()
+            self.groups.add(default_group)
+
+
 
 
 

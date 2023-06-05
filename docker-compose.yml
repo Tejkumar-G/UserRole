@@ -7,7 +7,7 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - 192.168.5.97:8000:8000
+      - "192.168.5.97:8000:8000"
     volumes:
       - .:/app
 
@@ -21,5 +21,5 @@ services:
     volumes:
       - ./dbdata:/var/lib/mysql
     ports:
-      - 33066:3306
+      - "33066:3306"
 

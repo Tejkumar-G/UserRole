@@ -1,11 +1,10 @@
 """
 Serializers for user role application.
 """
-from abc import ABC
 
-from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from django.contrib.auth.hashers import make_password
+from rest_framework import serializers
 
 from .models import User
 
@@ -16,38 +15,25 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = [
-            'id', 'first_name', 'last_name', 'email', 'phone', 'password', 'roles', 'permissions'
+            'id', 'first_name', 'last_name', 'email', 'phone', 'password', 'groups'
         ]
-        read_only_fields = ['id', 'roles', 'is_active', 'is_staff', 'is_superuser']
+        read_only_fields = ['id', 'groups', 'is_active', 'is_staff', 'is_superuser']
         extra_kwargs = {
             'password': {'write_only': True},
+            'groups': {'read_only': True},
         }
         depth = 1
 
     def create(self, validated_data):
         """Create the user with password."""
         password = validated_data.pop('password', None)
-        email = validated_data.pop('email', None)
-        print(email, password)
-        return get_user_model().objects.create_user(email=email, password=password, **validated_data)
+        email = validated_data.pop('email')
+        user = get_user_model().objects.create_user(email=email, **validated_data)
+        user.set_password(make_password(password))
+        user.save()
+        return user
 
     def update(self, instance, validated_data):
-        # Exclude email field from update
-        validated_data.pop('email', None)
         return super().update(instance, validated_data)
-
-
-class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
-    @classmethod
-    def get_token(cls, user):
-        token = super().get_token(user)
-        # Add custom claims to the token
-        token['user_id'] = user.id
-        return token
-
-    def validate(self, attrs):
-        data = super().validate(attrs)
-        data['user_id'] = self.user.id
-        return data
 
 
