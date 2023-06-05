@@ -1,10 +1,15 @@
 """
 Urls for user role app.
 """
-from django.urls import path, include
+from django.urls import path
 from rest_framework_simplejwt.views import (
     TokenRefreshView,
     TokenVerifyView,
+)
+
+from .middlewares import (
+    auth_middleware,
+    flask_swagger,
 )
 from .views import (
     CreateUserView,
@@ -13,10 +18,6 @@ from .views import (
     LogoutUserView,
 )
 
-from .middlewares import (
-    auth_middleware,
-    flask_swagger,
-)
 # from rest_framework.routers import DefaultRouter
 
 # router = DefaultRouter()
