@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Flask API Documentation</title>
+    <link rel="stylesheet" type="text/css" href="{% static 'swagger-ui/swagger-ui.css' %}">
+    <script src="{% static 'swagger-ui/swagger-ui-bundle.js' %}"></script>
+    <script src="{% static 'swagger-ui/swagger-ui-standalone-preset.js' %}"></script>
+    <style>
+        html, body { margin: 0; padding: 0; height: 100%; }
+        #swagger-ui { height: 100%; }
+    </style>
+</head>
+<body>
+    <div id="swagger-ui"></div>
+    <script>
+        window.onload = function() {
+            const ui = SwaggerUIBundle({
+                url: '{{ flask_url }}swagger.json',
+                dom_id: '#swagger-ui',
+                presets: [SwaggerUIBundle.presets.apis],
+                layout: 'BaseLayout'
+            });
+        }
+    </script>
+</body>
+</html>
