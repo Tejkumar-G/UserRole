@@ -14,12 +14,13 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = [
-            'id', 'first_name', 'last_name', 'email', 'phone', 'password', 'groups'
+            'id', 'first_name', 'last_name', 'email', 'phone', 'password', 'groups', 'strategy_access'
         ]
         read_only_fields = ['id', 'groups', 'is_active', 'is_staff', 'is_superuser']
         extra_kwargs = {
             'password': {'write_only': True},
             'groups': {'read_only': True},
+            'strategy_access': {'read_only': True},
         }
         depth = 1
 

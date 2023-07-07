@@ -20,7 +20,10 @@ def auth_middleware(request):
     except exceptions.AuthenticationFailed:
         return Response({'error': 'Invalid token'}, status=401)
 
-    return Response({'user_id': user.id})
+    return Response({
+        'user_id': user.id,
+        'permissions': user.strategy_access,
+    })
 
 
 def get_user_from_token(request):

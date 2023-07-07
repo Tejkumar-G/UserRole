@@ -1,22 +1,21 @@
 """
 Django admin customization.
 """
-from django import forms
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import (
     Permission,
-    Group
+    Group,
 )
 from django.utils.translation import gettext_lazy as _
 
 from core import models
-
+from core.forms import StrategyAccessForm
 
 
 class UserAdmin(BaseUserAdmin):
     """Define the admin page for users."""
-
+    form = StrategyAccessForm
 
     ordering = ['id']
     list_display = ['email', 'phone']
@@ -56,6 +55,8 @@ class UserAdmin(BaseUserAdmin):
                 'first_name',
                 'last_name',
                 'groups',
+                'is_staff',
+                'is_superuser',
                 'strategy_access',
             ),
         }),
